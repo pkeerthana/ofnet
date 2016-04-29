@@ -569,7 +569,18 @@ func (self *OfnetAgent) RemoveNetwork(vlanId uint16, vni uint32, Gw string, Vrf 
 	// make sure there are no endpoints still installed in this vlan
 	for _, endpoint := range self.endpointDb {
 		if (vni != 0) && (endpoint.Vni == vni) {
-			log.Fatalf("Vlan %d still has routes. Route: %+v", vlanId, endpoint)
+			if endpoint.OriginatorIp.String() == self.localIp.String() {
+				log.Fatalf("Vlan %d still has routes. Route: %+v", vlanId, endpoint)
+			} else {
+				// Network delete arrived before other hosts cleanup endpoint
+				var resp bool
+				log.Errorf("Vlan %d still has routes, cleaning up. Route: %+v", vlanId, endpoint)
+				err := self.EndpointDel(endpoint, &resp)
+				if err != nil {
+					log.Errorf("Error uninstalling endpoint %+v. Err: %v", endpoint, err)
+				}
+
+			}
 		}
 	}
 	// Call the datapath
