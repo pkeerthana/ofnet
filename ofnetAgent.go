@@ -562,10 +562,6 @@ func (self *OfnetAgent) RemoveNetwork(vlanId uint16, vni uint32, Gw string, Vrf 
 
 	delete(self.endpointDb, gwEpid)
 
-	// Clear the database
-	delete(self.vlanVniMap, vlanId)
-	delete(self.vniVlanMap, vni)
-
 	// make sure there are no endpoints still installed in this vlan
 	for _, endpoint := range self.endpointDb {
 		if (vni != 0) && (endpoint.Vni == vni) {
@@ -574,7 +570,7 @@ func (self *OfnetAgent) RemoveNetwork(vlanId uint16, vni uint32, Gw string, Vrf 
 			} else {
 				// Network delete arrived before other hosts cleanup endpoint
 				var resp bool
-				log.Errorf("Vlan %d still has routes, cleaning up. Route: %+v", vlanId, endpoint)
+				log.Warnf("Vlan %d still has routes, cleaning up. Route: %+v", vlanId, endpoint)
 				err := self.EndpointDel(endpoint, &resp)
 				if err != nil {
 					log.Errorf("Error uninstalling endpoint %+v. Err: %v", endpoint, err)
@@ -583,6 +579,11 @@ func (self *OfnetAgent) RemoveNetwork(vlanId uint16, vni uint32, Gw string, Vrf 
 			}
 		}
 	}
+
+	// Clear the database
+	delete(self.vlanVniMap, vlanId)
+	delete(self.vniVlanMap, vni)
+
 	// Call the datapath
 	return self.datapath.RemoveVlan(vlanId, vni, Vrf)
 }
